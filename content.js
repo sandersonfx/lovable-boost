@@ -186,33 +186,29 @@
             });
         }
 
-        try {
-            const resp = await fetch(url, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${currentToken}`, "Content-Type": "application/json" },
-                body, credentials: "include"
-            });
+        chrome.runtime.sendMessage({
+            action: "lovablePrompt",
+            url, body, token: currentToken, projectId: currentProjectId
+        }, (response) => {
             loadingEl.style.display = 'none'; sendBtn.disabled = false;
-
-            if (!resp.ok) {
-                const txt = await resp.text();
+            if (chrome.runtime.lastError) {
                 resultEl.style.display = 'block';
-                resultEl.innerHTML = `<div class="lb-result-error">⚠️ HTTP ${resp.status}: ${txt.substring(0, 400)}</div>`;
+                resultEl.innerHTML = `<div class="lb-result-error">⚠️ ${chrome.runtime.lastError.message}</div>`;
+                return;
+            }
+            if (!response || !response.ok) {
+                resultEl.style.display = 'block';
+                resultEl.innerHTML = `<div class="lb-result-error">⚠️ ${response?.error || 'Erro'}</div>`;
                 promptHistory.unshift({ prompt: prompt.substring(0, 200), timestamp: new Date().toISOString(), status: 'error' });
             } else {
-                const data = await resp.json();
                 resultEl.style.display = 'block';
-                resultEl.innerHTML = `<div class="lb-result-success">✅ OK</div><div style="font-size:11px;color:#888">📍 ${url}</div><pre class="lb-result-content">${escapeHtml(JSON.stringify(data, null, 2).substring(0, 5000))}</pre>`;
+                resultEl.innerHTML = `<div class="lb-result-success">✅ OK</div><div style="font-size:11px;color:#888">📍 ${url}</div><pre class="lb-result-content">${escapeHtml(JSON.stringify(response.data, null, 2).substring(0, 5000))}</pre>`;
                 promptHistory.unshift({ prompt: prompt.substring(0, 200), timestamp: new Date().toISOString(), status: 'ok' });
             }
             if (promptHistory.length > 50) promptHistory = promptHistory.slice(0, 50);
             chrome.storage.local.set({ lovablePromptHistory: promptHistory });
             renderHistory();
-        } catch (err) {
-            loadingEl.style.display = 'none'; sendBtn.disabled = false;
-            resultEl.style.display = 'block';
-            resultEl.innerHTML = `<div class="lb-result-error">⚠️ ${err.message}</div>`;
-        }
+        });
     }
 
     sendBtn.addEventListener('click', sendPrompt);
