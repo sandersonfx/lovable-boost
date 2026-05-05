@@ -1,5 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none">
-  <rect width="16" height="16" rx="3" fill="#7C3AED"/>
-  <path d="M4 5h8M4 8h6M4 11h7" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
-  <circle cx="12.5" cy="11.5" r="1.5" fill="#FBBF24"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+  <rect width="16" height="16" rx="3" fill="url(#bg)"/>
+  <text x="8" y="12" text-anchor="middle" font-size="10" font-weight="bold" fill="white" font-family="Arial">⚡</text>
 </svg>

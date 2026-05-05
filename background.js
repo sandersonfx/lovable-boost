@@ -1,61 +1,59 @@
-/**
- * Lovable Boost — Service Worker
- *
- * Serviço minimalista para:
- * - proxyFetch: chamadas CORS-safe para APIs externas
- * - sidePanel: abrir/fechar painel lateral
- * - Clique no ícone da extensão → abre sidepanel
- */
+console.log("[LovableBoost] Service worker iniciado");
 
-chrome.action.onClicked.addListener((tab) => {
-  chrome.sidePanel.open({ tabId: tab.id });
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    // Proxy fetch para Lovable API
+    if (msg.action === "lovablePrompt") {
+        (async () => {
+            try {
+                const { token, projectId, prompt } = msg;
+                if (!token || !projectId) {
+                    sendResponse({ ok: false, error: "Token ou ProjectId não capturado. Acesse o Lovable.dev primeiro." });
+                    return;
+                }
+
+                const url = `https://api.lovable.dev/v1/projects/${projectId}/prompt`;
+                const resp = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ prompt, stream: false })
+                });
+
+                if (!resp.ok) {
+                    const text = await resp.text();
+                    sendResponse({ ok: false, error: `HTTP ${resp.status}: ${text}` });
+                    return;
+                }
+
+                const data = await resp.json();
+                sendResponse({ ok: true, data });
+            } catch (err) {
+                sendResponse({ ok: false, error: err.message });
+            }
+        })();
+        return true; // keep channel open for async
+    }
+
+    // Proxy fetch genérico
+    if (msg.action === "proxyFetch") {
+        (async () => {
+            try {
+                const opts = {
+                    method: msg.method || "GET",
+                    headers: msg.headers || {},
+                    body: msg.body || null
+                };
+                const resp = await fetch(msg.url, opts);
+                const text = await resp.text();
+                let data;
+                try { data = JSON.parse(text); } catch { data = { raw: text }; }
+                sendResponse({ ok: resp.ok, status: resp.status, data });
+            } catch (err) {
+                sendResponse({ ok: false, status: 0, data: { error: err.message } });
+            }
+        })();
+        return true;
+    }
 });
-
-// Abre o sidepanel quando a extensão é instalada
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.sidePanel.setOptions({
-    enabled: true,
-    path: 'sidepanel.html'
-  });
-});
-
-// Handler de mensagens do content script
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  switch (message.action) {
-    case 'proxyFetch':
-      handleProxyFetch(message, sendResponse);
-      return true; // keep channel open for async
-
-    case 'openSidePanel':
-      chrome.sidePanel.open({ tabId: sender.tab?.id });
-      sendResponse({ ok: true });
-      break;
-
-    case 'closeSidePanel':
-      // sidePanel não tem close API nativa no Chrome
-      sendResponse({ ok: false, reason: 'sidePanel close via UI only' });
-      break;
-
-    default:
-      sendResponse({ ok: false, reason: 'unknown action' });
-  }
-});
-
-/**
- * Faz proxy de uma requisição HTTP para contornar CORS
- */
-async function handleProxyFetch(message, sendResponse) {
-  try {
-    const { url, options } = message;
-    const response = await fetch(url, {
-      method: options?.method || 'GET',
-      headers: options?.headers || {},
-      body: options?.body || undefined
-    });
-
-    const text = await response.text();
-    sendResponse({ ok: true, status: response.status, data: text });
-  } catch (err) {
-    sendResponse({ ok: false, error: err.message });
-  }
-}

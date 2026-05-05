@@ -2,42 +2,25 @@
   "manifest_version": 3,
   "name": "Lovable Boost",
   "version": "1.0.0",
-  "description": "Supercharge your Lovable.dev experience with prompt templates, voice input, file attachments, and more.",
-  "permissions": [
-    "storage",
-    "activeTab",
-    "scripting",
-    "sidePanel"
-  ],
-  "host_permissions": [
-    "https://*.lovable.dev/*"
-  ],
+  "description": "Use o Lovable.dev diretamente via API — sem interface web",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["https://*.lovable.dev/*", "https://api.lovable.dev/*"],
+  "action": {},
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
-      "matches": ["https://*.lovable.dev/*"],
+      "matches": ["https://*.lovable.dev/*", "https://lovable.dev/*"],
       "js": ["content.js"],
       "css": ["floating.css"],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     }
   ],
-  "side_panel": {
-    "default_path": "sidepanel.html"
-  },
-  "background": {
-    "service_worker": "background.js",
-    "type": "module"
-  },
-  "action": {
-    "default_title": "Lovable Boost",
-    "default_icon": {
-      "16": "icons/icon16.svg",
-      "48": "icons/icon48.svg",
-      "128": "icons/icon128.svg"
+  "web_accessible_resources": [
+    {
+      "resources": ["pageHook.js"],
+      "matches": ["https://*.lovable.dev/*"]
     }
-  },
-  "icons": {
-    "16": "icons/icon16.svg",
-    "48": "icons/icon48.svg",
-    "128": "icons/icon128.svg"
-  }
+  ]
 }

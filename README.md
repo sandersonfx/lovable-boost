@@ -1,57 +1,67 @@
-# Lovable Boost 🚀
+# ⚡ Lovable Boost
 
-Extensão Chrome que turbina o **Lovable.dev** com ferramentas para desenvolvimento mais rápido e produtivo.
+**Use o Lovable.dev diretamente via API — sem interface web.**
 
-## Funcionalidades
+Extensão Chrome que captura o token de autenticação do Lovable.dev e permite enviar prompts diretamente para a API, evitando o consumo de créditos da interface web.
 
-- 📋 **Prompt Templates** — Atalhos prontos: Bugs, Refatorar, SEO, UI, Componentes, Review e mais
-- 🎤 **Dictation por Voz** — Dite seus prompts com reconhecimento de fala nativo
-- 📎 **File Attachment** — Anexe arquivos de contexto (até 5)
-- 🌓 **Dark / Light Mode** — Alterna entre temas escuro e claro
-- 💾 **Histórico de Prompts** — Seus últimos 50 comandos salvos localmente
-- 📐 **Painel Lateral** — Funciona como UI flutuante ou no sidepanel do Chrome
-- ✨ **Prompt Optimizer** — Melhore seus prompts automaticamente
+## ✨ Funcionalidades
 
-## Instalação
+- 🔌 **Proxy API** — Envia prompts direto para `api.lovable.dev`, sem UI
+- 🪪 **Captura automática** — Detecta seu Bearer token e Project ID ao acessar o Lovable
+- 🎛️ **UI flutuante** — Interface elegante (glassmorphism) acionada pelo botão ⚡
+- 📋 **9 templates rápidos** — Mobile, UI/UX, Bug Fix, Auth, Dashboard, Performance, Dark Mode, Forms, Testes
+- 🎤 **Voz para texto** — Digite prompts falando (reconhecimento de voz)
+- 📜 **Histórico** — Últimos 50 prompts salvos localmente
+- 🌗 **Dark/Light mode** — Segue preferência do sistema ou alterna manualmente
 
-1. Baixe ou clone este repositório
-2. Vá em `chrome://extensions`
-3. Ative **"Modo do desenvolvedor"** (cantos superior direito)
-4. Clique **"Carregar sem compactação"**
-5. Selecione a pasta `lovable-boost`
+## 📦 Instalação
 
-Pronto! Acesse qualquer página em `*.lovable.dev` e veja o botão flutuante.
+### Via GitHub (desenvolvedor)
 
-## Como Usar
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/sandersonfx/lovable-boost.git
+   ```
+2. Abra o Chrome em `chrome://extensions/`
+3. Ative **Modo do desenvolvedor** (canto superior direito)
+4. Clique **Carregar sem compactação** e selecione a pasta `lovable-boost`
+5. Acesse [lovable.dev](https://lovable.dev) — o botão ⚡ aparecerá no canto inferior direito
 
-| Funcionalidade | Como acessar |
-|---|---|
-| Templates | Clique no botão flutuante → aba "Prompt" → escolha o template |
-| Voz | Abra o painel → clique no microfone 🎤 |
-| Anexos | Abra o painel → clique em 📎 (até 5 arquivos) |
-| Histórico | Abra o painel → aba "Histórico" |
-| Tema | Use o toggle 🌙/☀️ no cabeçalho |
-| Sidepanel | Clique no ícone da extensão na barra ou no botão 📐 |
+## 🚀 Como usar
 
-## Estrutura
+1. **Acesse** [lovable.dev](https://lovable.dev) e faça login normalmente
+2. **Abra um projeto** — a extensão captura automaticamente o token e Project ID
+3. **Clique em ⚡** no canto inferior direito
+4. **Digite seu prompt** ou use um template rápido
+5. **Clique "Enviar via API"** ou `Ctrl+Enter`
+6. A resposta da API aparece imediatamente
+
+### Dica: atalho de teclado
+- `Ctrl+Enter` — Envia o prompt direto sem clicar no botão
+
+## 🏗️ Arquitetura
 
 ```
-lovable-boost/
-├── manifest.json        # Configuração da extensão
-├── background.js        # Service worker (proxyFetch)
-├── content.js           # UI flutuante + lógica principal
-├── floating.css         # Estilos completos
-├── sidepanel.html       # Painel lateral
-├── sidepanel.js         # Lógica do painel lateral
-├── icons/               # Ícones SVG
-├── README.md
-└── LICENSE
+pageHook.js (injected) → intercepta fetch/XHR → captura Bearer token
+     ↓ envia via window.postMessage
+content.js (content script) → recebe token → mostra UI flutuante
+     ↓ envia comando + token via chrome.runtime.sendMessage
+background.js (service worker) → proxyFetch → chama API Lovable
+     ↓ POST para api.lovable.dev com token original
+Resposta → volta pra UI
 ```
 
-## Licença
+## 🔒 Segurança
 
-MIT — use, modifique, compartilhe à vontade.
+- O token **nunca** sai do seu navegador
+- A comunicação com a API é feita pelo service worker da extensão
+- Nenhum dado é enviado para servidores externos
+- Tudo fica armazenado localmente no `chrome.storage.local`
 
----
+## ⚠️ Aviso
 
-Feito com ☕ para a comunidade Lovable.dev
+Esta extensão é uma ferramenta de **proxy/boost** para uso pessoal. Use com responsabilidade e respeite os termos de serviço do Lovable.dev.
+
+## 📄 Licença
+
+MIT — veja o arquivo [LICENSE](LICENSE) para detalhes.
