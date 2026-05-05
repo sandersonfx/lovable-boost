@@ -1,5 +1,17 @@
 console.log("[LovableBoost] Service worker iniciado");
 
+// ── Extension icon click → toggle panel ────────────────────────────
+chrome.action.onClicked.addListener(async (tab) => {
+    // Only works on lovable.dev pages
+    if (tab.url && tab.url.includes('lovable.dev')) {
+        try {
+            await chrome.tabs.sendMessage(tab.id, { action: "toggleBoost" });
+        } catch (err) {
+            console.log("[LovableBoost] Tab not ready for messaging:", err.message);
+        }
+    }
+});
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Proxy fetch para Lovable API
     if (msg.action === "lovablePrompt") {

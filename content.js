@@ -54,7 +54,7 @@
     const container = document.createElement('div');
     container.id = 'lovable-boost-container';
     container.innerHTML = `
-        <div id="lovable-boost-toggle" title="Lovable Boost API">⚡</div>
+        <div id="lovable-boost-toggle" title="Lovable Boost API">⚡ Lovable Boost</div>
         <div id="lovable-boost-panel" class="${isDarkMode ? 'dark' : 'light'}">
             <div class="lb-header">
                 <h3>⚡ Lovable Boost</h3>
