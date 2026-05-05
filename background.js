@@ -95,9 +95,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${token}`,
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        "Origin": "https://lovable.dev",
+                        "Referer": "https://lovable.dev/"
                     },
-                    body: body
+                    body: body,
+                    credentials: "include"
                 });
 
                 if (!resp.ok) {

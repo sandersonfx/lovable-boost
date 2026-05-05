@@ -11,7 +11,7 @@
     let currentProjectId = null;
     let promptHistory = [];
     let isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    let chatTemplate = null; // Template capturado da chamada real do Lovable
+    let chatTemplate = null;
 
     // ── Load stored data ─────────────────────────────────────────────
     chrome.storage.local.get(['lovableToken', 'lovableProjectId', 'lovablePromptHistory', 'lovableDarkMode'], (res) => {
@@ -22,50 +22,37 @@
         updateUI();
     });
 
-    // ── Listen for token from pageHook ───────────────────────────────
+    // ── Listen for token & template from pageHook ────────────────────
     window.addEventListener('message', (event) => {
         if (event.data.type === 'lovableTokenFound') {
             const { token, projectId } = event.data;
-            if (token) {
-                currentToken = token;
-                chrome.storage.local.set({ lovableToken: token });
-            }
-            if (projectId) {
-                currentProjectId = projectId;
-                chrome.storage.local.set({ lovableProjectId: projectId });
-            }
+            if (token) { currentToken = token; chrome.storage.local.set({ lovableToken: token }); }
+            if (projectId) { currentProjectId = projectId; chrome.storage.local.set({ lovableProjectId: projectId }); }
             updateUI();
-            // Auto-abre o painel quando captura token
             const panel = document.getElementById('lovable-boost-panel');
             if (panel && currentToken && currentProjectId) panel.classList.add('lb-open');
         }
-        // Recebe o template da chamada real do Lovable
         if (event.data.type === 'lovableChatTemplate') {
-            chatTemplate = {
-                url: event.data.url,
-                method: event.data.method,
-                bodyTemplate: event.data.bodyTemplate
-            };
-            console.log('[LovableBoost] ✅ Template capturado:', chatTemplate.url);
-            chrome.runtime.sendMessage({ action: "saveChatTemplate", template: chatTemplate });
+            chatTemplate = { url: event.data.url, method: event.data.method, bodyTemplate: event.data.bodyTemplate };
+            console.log('[LovableBoost] Template:', chatTemplate.url);
             updateUI();
         }
     });
 
-    // ── Templates ───────────────────────────────────────────────────
+    // ── Templates ────────────────────────────────────────────────────
     const PROMPT_TEMPLATES = [
-        { label: '📱 Responsivo Mobile', template: 'Make the entire interface fully responsive for mobile devices. Use proper breakpoints, touch-friendly targets, and a mobile-first approach.' },
-        { label: '🎨 Melhorar UI/UX', template: 'Improve the overall UI/UX design: better spacing, typography, color contrast, micro-interactions, and visual hierarchy. Make it look more polished and professional.' },
-        { label: '🐛 Fix Bug', template: 'Fix the following bug:\n\n'} ,
-        { label: '🔐 Adicionar Auth', template: 'Add authentication flow with email/password and OAuth providers (Google, GitHub). Include protected routes, session management, and a login/register UI.' },
-        { label: '📊 Dashboard', template: 'Create a dashboard page with charts, metrics cards, and data tables. Include filtering, date range picker, and export options.' },
-        { label: '🚀 Performance', template: 'Optimize performance: lazy loading, code splitting, image optimization, caching strategy, and reduce bundle size. Add performance monitoring.' },
-        { label: '🌗 Dark Mode', template: 'Implement a dark mode toggle with CSS custom properties. Persist the preference, handle system preference, and ensure all components have dark variants.' },
-        { label: '📝 Form + Validação', template: 'Create a form with validation using react-hook-form/zod. Include real-time validation, error messages, loading states, and submission feedback.' },
-        { label: '🧪 Testes', template: 'Add comprehensive tests: unit tests with Vitest, integration tests, and E2E tests with Playwright. Cover edge cases and error states.' },
+        { label: '🐛 Fix Bug', template: 'Fix the following bug:\n\n' },
+        { label: '🎨 UI/UX', template: 'Improve the UI/UX: better spacing, typography, color contrast, micro-interactions, and visual hierarchy.' },
+        { label: '🚀 Performance', template: 'Optimize performance: lazy loading, code splitting, image optimization, caching.' },
+        { label: '📱 Responsivo', template: 'Make the interface fully responsive for mobile with proper breakpoints and touch-friendly targets.' },
+        { label: '📊 Dashboard', template: 'Create a dashboard with charts, metrics cards, data tables, filtering, and export options.' },
+        { label: '🔐 Auth', template: 'Add authentication with email/password and OAuth (Google, GitHub). Protected routes and session management.' },
+        { label: '🧪 Testes', template: 'Add comprehensive tests: unit tests, integration tests, E2E tests with Playwright.' },
+        { label: '🌗 Dark Mode', template: 'Implement dark mode toggle with CSS custom properties, persist preference.' },
+        { label: '📝 Form', template: 'Create a form with validation, error messages, loading states, and submission feedback.' },
     ];
 
-    // ── Build UI ────────────────────────────────────────────────────
+    // ── Build UI ─────────────────────────────────────────────────────
     const container = document.createElement('div');
     container.id = 'lovable-boost-container';
     container.innerHTML = `
@@ -75,26 +62,25 @@
                 <h3>⚡ Lovable Boost</h3>
                 <div class="lb-header-actions">
                     <button id="lb-theme-toggle" title="Toggle tema">${isDarkMode ? '☀️' : '🌙'}</button>
-                    <button id="lb-clear-btn" title="Limpar histórico">🗑️</button>
+                    <button id="lb-clear-btn" title="Limpar">🗑️</button>
                     <button id="lb-close-btn" title="Fechar">✕</button>
                 </div>
             </div>
             <div id="lb-status" class="lb-status lb-status-waiting">🔴 Aguardando token...</div>
             <div id="lb-project-info" class="lb-project-info" style="display:none;"></div>
             <div class="lb-input-area">
-                <textarea id="lb-prompt-input" placeholder="Digite seu prompt para o Lovable..." rows="4"></textarea>
+                <textarea id="lb-prompt-input" placeholder="Digite seu prompt..." rows="4"></textarea>
                 <div class="lb-input-actions">
-                    <button id="lb-voice-btn" title="Digitar por voz">🎤</button>
+                    <button id="lb-voice-btn" title="Voz">🎤</button>
                     <button id="lb-send-btn" class="lb-btn-primary">Enviar via API 🚀</button>
                 </div>
             </div>
             <div id="lb-templates" class="lb-templates">
-                <div class="lb-templates-header">Templates rápidos</div>
+                <div class="lb-templates-header">Templates</div>
                 <div class="lb-templates-grid"></div>
             </div>
             <div id="lb-loading" style="display:none;" class="lb-loading">
-                <div class="lb-spinner"></div>
-                <span>Enviando para Lovable API...</span>
+                <div class="lb-spinner"></div><span>Enviando...</span>
             </div>
             <div id="lb-result" class="lb-result" style="display:none;"></div>
             <div id="lb-history" class="lb-history" style="display:none;">
@@ -109,24 +95,15 @@
     const templatesGrid = container.querySelector('.lb-templates-grid');
     PROMPT_TEMPLATES.forEach(t => {
         const btn = document.createElement('button');
-        btn.className = 'lb-template-btn';
-        btn.textContent = t.label;
-        btn.title = t.template;
+        btn.className = 'lb-template-btn'; btn.textContent = t.label; btn.title = t.template;
         btn.addEventListener('click', () => {
             const input = document.getElementById('lb-prompt-input');
-            if (input) {
-                if (t.label === '🐛 Fix Bug') {
-                    input.value = t.template;
-                } else {
-                    input.value = t.template;
-                }
-                input.focus();
-            }
+            if (input) { input.value = t.template; input.focus(); }
         });
         templatesGrid.appendChild(btn);
     });
 
-    // ── DOM refs ────────────────────────────────────────────────────
+    // ── DOM refs ─────────────────────────────────────────────────────
     const panel = document.getElementById('lovable-boost-panel');
     const toggle = document.getElementById('lovable-boost-toggle');
     const statusEl = document.getElementById('lb-status');
@@ -142,16 +119,9 @@
     const clearBtn = document.getElementById('lb-clear-btn');
     const themeToggle = document.getElementById('lb-theme-toggle');
 
-    // ── Toggle panel ─────────────────────────────────────────────────
-    toggle.addEventListener('click', () => {
-        panel.classList.toggle('lb-open');
-    });
+    toggle.addEventListener('click', () => panel.classList.toggle('lb-open'));
+    closeBtn.addEventListener('click', () => panel.classList.remove('lb-open'));
 
-    closeBtn.addEventListener('click', () => {
-        panel.classList.remove('lb-open');
-    });
-
-    // ── Theme toggle ─────────────────────────────────────────────────
     themeToggle.addEventListener('click', () => {
         isDarkMode = !isDarkMode;
         panel.classList.remove('dark', 'light');
@@ -160,200 +130,119 @@
         chrome.storage.local.set({ lovableDarkMode: isDarkMode });
     });
 
-    // ── Update UI state ─────────────────────────────────────────────
+    // ── Update UI ────────────────────────────────────────────────────
     function updateUI() {
-        if (currentToken && currentProjectId && chatTemplate) {
+        if (currentToken && currentProjectId) {
             statusEl.className = 'lb-status lb-status-active';
-            statusEl.innerHTML = `🟢 Pronto — endpoint capturado`;
-            projectInfo.style.display = 'block';
-            projectInfo.innerHTML = `📁 <code>${currentProjectId.substring(0,8)}...</code>`;
-            sendBtn.disabled = false;
-        } else if (currentToken && currentProjectId) {
-            statusEl.className = 'lb-status lb-status-active';
-            statusEl.innerHTML = '🟢 Pronto — usando endpoint padrão (mande 1 msg no chat normal pra capturar o exato)';
+            statusEl.innerHTML = chatTemplate ? '🟢 Pronto' : '🟢 Pronto (fallback)';
             projectInfo.style.display = 'block';
             projectInfo.innerHTML = `📁 <code>${currentProjectId.substring(0,8)}...</code>`;
             sendBtn.disabled = false;
         } else if (currentToken) {
             statusEl.className = 'lb-status lb-status-partial';
-            statusEl.innerHTML = '🟡 Token capturado, aguardando Project ID...';
+            statusEl.innerHTML = '🟡 Aguardando Project ID...';
             projectInfo.style.display = 'none';
             sendBtn.disabled = true;
         } else {
             statusEl.className = 'lb-status lb-status-waiting';
-            statusEl.innerHTML = '🔴 Aguardando token... Abra o Lovable.dev';
+            statusEl.innerHTML = '🔴 Abra o Lovable.dev';
             projectInfo.style.display = 'none';
             sendBtn.disabled = true;
         }
         renderHistory();
     }
 
-    // ── Send prompt ─────────────────────────────────────────────────
+    // ── Send prompt (DIRETO do content script = cookies/origin certos) ──
     async function sendPrompt() {
         const prompt = promptInput.value.trim();
-        if (!prompt) return;
+        if (!prompt || !currentToken || !currentProjectId) return;
 
-        if (!currentToken || !currentProjectId) {
-            resultEl.style.display = 'block';
-            resultEl.innerHTML = '<div class="lb-result-error">⚠️ Token ou Project ID não disponível.</div>';
-            return;
+        loadingEl.style.display = 'flex'; resultEl.style.display = 'none'; sendBtn.disabled = true;
+
+        const url = `https://api.lovable.dev/projects/${currentProjectId}/chat`;
+        let body;
+        if (chatTemplate?.bodyTemplate) {
+            try {
+                const p = JSON.parse(chatTemplate.bodyTemplate);
+                p.message = prompt;
+                p.id = 'umsg_' + Date.now().toString(36) + Math.random().toString(36).substr(2,9);
+                p.ai_message_id = 'aimsg_' + Date.now().toString(36) + Math.random().toString(36).substr(2,9);
+                body = JSON.stringify(p);
+            } catch { body = null; }
+        }
+        if (!body) {
+            body = JSON.stringify({
+                id: 'umsg_' + Date.now().toString(36) + Math.random().toString(36).substr(2,9),
+                message: prompt, files: [], selected_elements: [],
+                chat_only: false, view: "preview",
+                ai_message_id: 'aimsg_' + Date.now().toString(36) + Math.random().toString(36).substr(2,9),
+                thread_id: "main", model: null
+            });
         }
 
-        loadingEl.style.display = 'flex';
-        resultEl.style.display = 'none';
-        sendBtn.disabled = true;
+        try {
+            const resp = await fetch(url, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${currentToken}`, "Content-Type": "application/json" },
+                body, credentials: "include"
+            });
+            loadingEl.style.display = 'none'; sendBtn.disabled = false;
 
-        chrome.runtime.sendMessage({
-            action: "lovablePrompt",
-            token: currentToken,
-            projectId: currentProjectId,
-            prompt: prompt,
-            chatTemplate: chatTemplate
-        }, (response) => {
-            loadingEl.style.display = 'none';
-            sendBtn.disabled = false;
-
-            if (chrome.runtime.lastError) {
+            if (!resp.ok) {
+                const txt = await resp.text();
                 resultEl.style.display = 'block';
-                resultEl.innerHTML = `<div class="lb-result-error">⚠️ Erro: ${chrome.runtime.lastError.message}</div>`;
-                return;
-            }
-
-            if (!response || !response.ok) {
+                resultEl.innerHTML = `<div class="lb-result-error">⚠️ HTTP ${resp.status}: ${txt.substring(0, 400)}</div>`;
+                promptHistory.unshift({ prompt: prompt.substring(0, 200), timestamp: new Date().toISOString(), status: 'error' });
+            } else {
+                const data = await resp.json();
                 resultEl.style.display = 'block';
-                resultEl.innerHTML = `<div class="lb-result-error">⚠️ ${response?.error || 'Erro desconhecido'}</div>`;
-                return;
+                resultEl.innerHTML = `<div class="lb-result-success">✅ OK</div><div style="font-size:11px;color:#888">📍 ${url}</div><pre class="lb-result-content">${escapeHtml(JSON.stringify(data, null, 2).substring(0, 5000))}</pre>`;
+                promptHistory.unshift({ prompt: prompt.substring(0, 200), timestamp: new Date().toISOString(), status: 'ok' });
             }
-
-            const data = response.data;
-            const output = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data);
-            const endpointInfo = response.endpoint ? `<div style="font-size:11px;color:var(--lb-text-muted,#888);margin-bottom:8px">📍 ${response.endpoint}</div>` : '';
-            
-            resultEl.style.display = 'block';
-            resultEl.innerHTML = `
-                <div class="lb-result-success">✅ Resposta recebida!</div>
-                ${endpointInfo}
-                <pre class="lb-result-content">${escapeHtml(output.substring(0, 5000))}</pre>
-                ${output.length > 5000 ? '<div class="lb-result-truncated">... (truncado, veja o console completo)</div>' : ''}
-            `;
-
-            // Save to history
-            const entry = {
-                prompt: prompt.substring(0, 200),
-                timestamp: new Date().toISOString(),
-                status: 'ok'
-            };
-            promptHistory.unshift(entry);
             if (promptHistory.length > 50) promptHistory = promptHistory.slice(0, 50);
             chrome.storage.local.set({ lovablePromptHistory: promptHistory });
             renderHistory();
-        });
+        } catch (err) {
+            loadingEl.style.display = 'none'; sendBtn.disabled = false;
+            resultEl.style.display = 'block';
+            resultEl.innerHTML = `<div class="lb-result-error">⚠️ ${err.message}</div>`;
+        }
     }
 
     sendBtn.addEventListener('click', sendPrompt);
-
-    // ── Ctrl+Enter to send ──────────────────────────────────────────
     promptInput.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key === 'Enter') {
-            e.preventDefault();
-            sendPrompt();
-        }
+        if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); sendPrompt(); }
     });
 
-    // ── Voice input ─────────────────────────────────────────────────
-    let recognition = null;
-    let isListening = false;
-
+    // ── Voice ────────────────────────────────────────────────────────
+    let recognition = null, isListening = false;
     voiceBtn.addEventListener('click', () => {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert('Reconhecimento de voz não disponível neste navegador. Use Chrome.');
-            return;
-        }
-
-        if (isListening) {
-            if (recognition) recognition.stop();
-            voiceBtn.textContent = '🎤';
-            voiceBtn.classList.remove('lb-listening');
-            isListening = false;
-            return;
-        }
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        recognition = new SpeechRecognition();
-        recognition.lang = 'pt-BR';
-        recognition.interimResults = true;
-        recognition.continuous = true;
-
-        recognition.onresult = (event) => {
-            let transcript = '';
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                transcript += event.results[i][0].transcript;
-            }
-            promptInput.value = (promptInput.value + ' ' + transcript).trim();
-            promptInput.scrollTop = promptInput.scrollHeight;
-        };
-
-        recognition.onerror = () => {
-            voiceBtn.textContent = '🎤';
-            voiceBtn.classList.remove('lb-listening');
-            isListening = false;
-        };
-
-        recognition.onend = () => {
-            voiceBtn.textContent = '🎤';
-            voiceBtn.classList.remove('lb-listening');
-            isListening = false;
-        };
-
-        recognition.start();
-        voiceBtn.textContent = '⏹️';
-        voiceBtn.classList.add('lb-listening');
-        isListening = true;
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) { alert('Voz não disponível.'); return; }
+        if (isListening) { recognition?.stop(); voiceBtn.textContent = '🎤'; voiceBtn.classList.remove('lb-listening'); isListening = false; return; }
+        recognition = new SR(); recognition.lang = 'pt-BR'; recognition.interimResults = true;
+        recognition.onresult = (e) => { let t = ''; for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript; promptInput.value = (promptInput.value + ' ' + t).trim(); };
+        recognition.onerror = recognition.onend = () => { voiceBtn.textContent = '🎤'; voiceBtn.classList.remove('lb-listening'); isListening = false; };
+        recognition.start(); voiceBtn.textContent = '⏹️'; voiceBtn.classList.add('lb-listening'); isListening = true;
     });
 
-    // ── Render history ──────────────────────────────────────────────
+    // ── History ──────────────────────────────────────────────────────
     function renderHistory() {
         if (!historyList) return;
-        if (promptHistory.length === 0) {
-            historyEl.style.display = 'none';
-            return;
-        }
+        if (promptHistory.length === 0) { historyEl.style.display = 'none'; return; }
         historyEl.style.display = 'block';
-        historyList.innerHTML = promptHistory.slice(0, 10).map((entry, i) => {
-            const date = new Date(entry.timestamp);
-            const timeStr = date.toLocaleString('pt-BR');
-            const icon = entry.status === 'ok' ? '✅' : '❌';
-            return `<div class="lb-history-item" data-idx="${i}">
-                <span class="lb-history-icon">${icon}</span>
-                <span class="lb-history-text">${escapeHtml(entry.prompt)}</span>
-                <span class="lb-history-time">${timeStr}</span>
-            </div>`;
+        historyList.innerHTML = promptHistory.slice(0, 10).map((e, i) => {
+            const d = new Date(e.timestamp);
+            return `<div class="lb-history-item"><span>${e.status === 'ok' ? '✅' : '❌'}</span><span>${escapeHtml(e.prompt)}</span><span>${d.toLocaleString('pt-BR')}</span></div>`;
         }).join('');
     }
+    clearBtn.addEventListener('click', () => { promptHistory = []; chrome.storage.local.set({ lovablePromptHistory: [] }); renderHistory(); });
 
-    // ── Clear history ───────────────────────────────────────────────
-    clearBtn.addEventListener('click', () => {
-        promptHistory = [];
-        chrome.storage.local.set({ lovablePromptHistory: [] });
-        renderHistory();
-    });
+    function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
-    // ── Escape HTML ─────────────────────────────────────────────────
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+    // ── Side panel on icon click ─────────────────────────────────────
+    chrome.runtime.onMessage.addListener((msg) => { if (msg.action === "toggleBoost") panel.classList.toggle('lb-open'); });
 
-    // ── Initial render ──────────────────────────────────────────────
     updateUI();
-
-    // ── Side panel on extension icon click ──────────────────────────
-    chrome.runtime.onMessage.addListener((msg) => {
-        if (msg.action === "toggleBoost") {
-            panel.classList.toggle('lb-open');
-        }
-    });
-
     console.log('[LovableBoost] Content script loaded');
 })();
