@@ -13,37 +13,55 @@ chrome.action.onClicked.addListener(async (tab) => {
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    // Proxy fetch para Lovable API — via Reativazap
+    // Chamada direta pra Lovable API (service worker = sem CORS)
     if (msg.action === "lovablePrompt") {
         (async () => {
             try {
-                const { token, projectId, prompt, proxyUrl } = msg;
+                const { token, projectId, prompt } = msg;
                 if (!token || !projectId) {
                     sendResponse({ ok: false, error: "Token ou ProjectId não capturado. Acesse o Lovable.dev primeiro." });
                     return;
                 }
 
-                // Usa o proxy do Reativazap
-                const PROXY_URL = proxyUrl || "https://api.reativazap.com/lovable/proxy";
-                
-                const resp = await fetch(PROXY_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ token, projectId, prompt })
-                });
+                // Tenta os endpoints conhecidos do Lovable em ordem
+                const endpoints = [
+                    `https://api.lovable.dev/v1/projects/${projectId}/chat`,
+                    `https://api.lovable.dev/v1/projects/${projectId}/completions`,
+                    `https://api.lovable.dev/api/projects/${projectId}/chat`,
+                    `https://lovable.dev/api/projects/${projectId}/chat`,
+                ];
 
-                const result = await resp.json();
-                
-                if (result.ok) {
-                    sendResponse({ ok: true, data: result.data });
-                } else {
-                    sendResponse({ ok: false, error: result.error || `HTTP ${resp.status}` });
+                let lastError = null;
+                for (const url of endpoints) {
+                    try {
+                        console.log("[LovableBoost] Tentando:", url);
+                        const resp = await fetch(url, {
+                            method: "POST",
+                            headers: {
+                                "Authorization": `Bearer ${token}`,
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({ message: prompt, prompt: prompt, stream: false })
+                        });
+
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            console.log("[LovableBoost] ✅ Sucesso com:", url);
+                            sendResponse({ ok: true, data, endpoint: url });
+                            return;
+                        }
+                        lastError = `HTTP ${resp.status}: ${(await resp.text()).substring(0, 200)}`;
+                    } catch (e) {
+                        lastError = e.message;
+                    }
                 }
+                
+                sendResponse({ ok: false, error: `Nenhum endpoint funcionou. Último erro: ${lastError}` });
             } catch (err) {
                 sendResponse({ ok: false, error: err.message });
             }
         })();
-        return true; // keep channel open for async
+        return true;
     }
 
     // Proxy fetch genérico

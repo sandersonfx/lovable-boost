@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Use o Lovable.dev diretamente via API — sem interface web",
   "permissions": ["storage", "activeTab", "scripting"],
-  "host_permissions": ["https://*.lovable.dev/*", "https://api.lovable.dev/*", "https://api.reativazap.com/*"],
+  "host_permissions": ["https://*.lovable.dev/*", "https://api.lovable.dev/*"],
   "action": {},
   "background": {
     "service_worker": "background.js"

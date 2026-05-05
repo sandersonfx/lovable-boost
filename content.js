@@ -186,8 +186,7 @@
             action: "lovablePrompt",
             token: currentToken,
             projectId: currentProjectId,
-            prompt: prompt,
-            proxyUrl: "https://api.reativazap.com/lovable/proxy"
+            prompt: prompt
         }, (response) => {
             loadingEl.style.display = 'none';
             sendBtn.disabled = false;
@@ -206,10 +205,12 @@
 
             const data = response.data;
             const output = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data);
-
+            const endpointInfo = response.endpoint ? `<div style="font-size:11px;color:var(--lb-text-muted,#888);margin-bottom:8px">📍 ${response.endpoint}</div>` : '';
+            
             resultEl.style.display = 'block';
             resultEl.innerHTML = `
                 <div class="lb-result-success">✅ Resposta recebida!</div>
+                ${endpointInfo}
                 <pre class="lb-result-content">${escapeHtml(output.substring(0, 5000))}</pre>
                 ${output.length > 5000 ? '<div class="lb-result-truncated">... (truncado, veja o console completo)</div>' : ''}
             `;
