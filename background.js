@@ -1,6 +1,6 @@
 console.log("[LovableBoost] Service worker iniciado");
 
-let cachedTemplate = null; // { url, method, bodyKeys } da última chamada de chat
+let cachedTemplate = null;
 
 // ── Extension icon click → toggle panel ────────────────────────────
 chrome.action.onClicked.addListener(async (tab) => {
@@ -17,12 +17,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Store captured chat template from pageHook
     if (msg.action === "saveChatTemplate") {
         cachedTemplate = msg.template;
-        console.log("[LovableBoost] Template salvo:", cachedTemplate);
+        console.log("[LovableBoost] Template salvo:", cachedTemplate.url);
         sendResponse({ ok: true });
         return false;
     }
 
-    // Proxy fetch (genérico — uploads, etc)
+    // Proxy fetch genérico
     if (msg.action === "proxyFetch") {
         (async () => {
             try {
@@ -43,46 +43,56 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return true;
     }
 
-    // Chamada pro Lovable — usando o mesmo template que a UI normal usa
+    // ── Prompt pro Lovable ──────────────────────────────────────────
     if (msg.action === "lovablePrompt") {
         (async () => {
             try {
                 const { token, projectId, prompt, chatTemplate } = msg;
                 if (!token || !projectId) {
-                    sendResponse({ ok: false, error: "Token não capturado. Acesse o Lovable.dev primeiro." });
+                    sendResponse({ ok: false, error: "Token não capturado." });
                     return;
                 }
 
-                // Usa o template capturado pelo pageHook (da chamada real do Lovable)
                 const tmpl = chatTemplate || cachedTemplate;
-                if (!tmpl || !tmpl.url) {
-                    sendResponse({ ok: false, error: "Template não capturado. Mande UMA mensagem no chat normal do Lovable primeiro (abre o chat e digita qualquer coisa). Depois volta e usa o painel." });
-                    return;
+
+                // URL: capturada do template ou fallback confirmado
+                const url = (tmpl && tmpl.url)
+                    ? tmpl.url
+                    : `https://api.lovable.dev/projects/${projectId}/chat`;
+
+                // Body: capturado do template ou fallback completo
+                let body;
+                if (tmpl && tmpl.bodyTemplate) {
+                    try {
+                        const parsed = JSON.parse(tmpl.bodyTemplate);
+                        parsed.message = prompt;
+                        parsed.id = 'umsg_' + Date.now().toString(36) + Math.random().toString(36).substr(2,9);
+                        parsed.ai_message_id = 'aimsg_' + Date.now().toString(36) + Math.random().toString(36).substr(2,9);
+                        body = JSON.stringify(parsed);
+                    } catch {
+                        body = null;
+                    }
+                }
+                if (!body) {
+                    // Fallback: mesmo formato do curl real do Lovable
+                    body = JSON.stringify({
+                        id: 'umsg_' + Date.now().toString(36) + Math.random().toString(36).substr(2,9),
+                        message: prompt,
+                        files: [],
+                        selected_elements: [],
+                        chat_only: false,
+                        view: "preview",
+                        ai_message_id: 'aimsg_' + Date.now().toString(36) + Math.random().toString(36).substr(2,9),
+                        thread_id: "main",
+                        model: null
+                    });
                 }
 
-                // Substitui as variáveis no template
-                let url = tmpl.url;
-                if (url.includes(':projectId')) url = url.replace(':projectId', projectId);
-                // Se o template tiver o projectId real, mantém
-
-                let body = tmpl.bodyTemplate || '{}';
-                try {
-                    const parsed = JSON.parse(body);
-                    // Tenta substituir a mensagem mantendo a estrutura original
-                    if (parsed.message !== undefined) parsed.message = prompt;
-                    else if (parsed.prompt !== undefined) parsed.prompt = prompt;
-                    else if (parsed.content !== undefined) parsed.content = prompt;
-                    else parsed.mensagem = prompt;
-                    body = JSON.stringify(parsed);
-                } catch {
-                    body = JSON.stringify({ message: prompt });
-                }
-
-                console.log("[LovableBoost] Enviando:", tmpl.method, url);
+                console.log("[LovableBoost] POST", url);
                 console.log("[LovableBoost] Body:", body.substring(0, 200));
 
                 const resp = await fetch(url, {
-                    method: tmpl.method || "POST",
+                    method: "POST",
                     headers: {
                         "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json"
@@ -97,7 +107,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 }
 
                 const data = await resp.json();
-                console.log("[LovableBoost] ✅ Resposta recebida");
+                console.log("[LovableBoost] ✅ OK");
                 sendResponse({ ok: true, data, endpoint: url });
             } catch (err) {
                 sendResponse({ ok: false, error: err.message });

@@ -164,16 +164,16 @@
     function updateUI() {
         if (currentToken && currentProjectId && chatTemplate) {
             statusEl.className = 'lb-status lb-status-active';
-            statusEl.innerHTML = `🟢 Pronto! Template: <code>${chatTemplate.url.substring(0,40).replace(/https:\/\//,'')}...</code>`;
+            statusEl.innerHTML = `🟢 Pronto — endpoint capturado`;
             projectInfo.style.display = 'block';
-            projectInfo.innerHTML = `📁 Projeto: <code>${currentProjectId}</code>`;
+            projectInfo.innerHTML = `📁 <code>${currentProjectId.substring(0,8)}...</code>`;
             sendBtn.disabled = false;
         } else if (currentToken && currentProjectId) {
-            statusEl.className = 'lb-status lb-status-partial';
-            statusEl.innerHTML = '🟡 Token OK — ⚠️ Mande 1 msg no chat do Lovable pra capturar o endpoint';
+            statusEl.className = 'lb-status lb-status-active';
+            statusEl.innerHTML = '🟢 Pronto — usando endpoint padrão (mande 1 msg no chat normal pra capturar o exato)';
             projectInfo.style.display = 'block';
-            projectInfo.innerHTML = `📁 Projeto: <code>${currentProjectId}</code>`;
-            sendBtn.disabled = true;
+            projectInfo.innerHTML = `📁 <code>${currentProjectId.substring(0,8)}...</code>`;
+            sendBtn.disabled = false;
         } else if (currentToken) {
             statusEl.className = 'lb-status lb-status-partial';
             statusEl.innerHTML = '🟡 Token capturado, aguardando Project ID...';
@@ -195,13 +195,7 @@
 
         if (!currentToken || !currentProjectId) {
             resultEl.style.display = 'block';
-            resultEl.innerHTML = '<div class="lb-result-error">⚠️ Token ou Project ID não disponível. Acesse o Lovable.dev primeiro.</div>';
-            return;
-        }
-
-        if (!chatTemplate) {
-            resultEl.style.display = 'block';
-            resultEl.innerHTML = '<div class="lb-result-error">⚠️ Mande UMA mensagem no chat normal do Lovable primeiro (digita qualquer coisa e envia). Depois volta aqui.</div>';
+            resultEl.innerHTML = '<div class="lb-result-error">⚠️ Token ou Project ID não disponível.</div>';
             return;
         }
 
