@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "Lovable Boost",
+  "version": "1.0.0",
+  "description": "Supercharge your Lovable.dev experience with prompt templates, voice input, file attachments, and more.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://*.lovable.dev/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://*.lovable.dev/*"],
+      "js": ["content.js"],
+      "css": ["floating.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Lovable Boost",
+    "default_icon": {
+      "16": "icons/icon16.svg",
+      "48": "icons/icon48.svg",
+      "128": "icons/icon128.svg"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.svg",
+    "48": "icons/icon48.svg",
+    "128": "icons/icon128.svg"
+  }
+}

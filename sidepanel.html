@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lovable Boost — Side Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Reset + base */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1e1e28;
+      --bg-card: rgba(255,255,255,0.05);
+      --bg-hover: rgba(255,255,255,0.08);
+      --bg-input: rgba(255,255,255,0.06);
+      --text: #e4e4ec;
+      --text-secondary: #9898a8;
+      --border: rgba(255,255,255,0.08);
+      --primary: #7C3AED;
+      --primary-hover: #8B5CF6;
+      --radius: 8px;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 12px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+
+    .header svg { width: 20px; height: 20px; flex-shrink: 0; }
+    .header h1 { font-size: 14px; font-weight: 600; }
+
+    .section { margin-bottom: 12px; }
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .templates {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+
+    .template-btn {
+      all: unset;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .template-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--primary);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    textarea {
+      flex: 1;
+      min-height: 80px;
+      padding: 8px 10px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 12px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    textarea:focus { border-color: var(--primary); }
+    textarea::placeholder { color: var(--text-secondary); }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .btn {
+      all: unset;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 8px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn:hover { background: var(--bg-hover); }
+
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      flex: 1;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .btn-mic {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .btn-mic.recording {
+      background: #EF4444;
+      border-color: #EF4444;
+      color: #fff;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+    }
+
+    .file-area { margin-top: 8px; }
+
+    .file-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .file-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      background: rgba(124,58,237,0.15);
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 12px;
+      font-size: 11px;
+      color: var(--primary);
+    }
+
+    .file-chip span { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-chip button { all: unset; cursor: pointer; font-size: 14px; opacity: 0.7; }
+    .file-chip button:hover { opacity: 1; }
+
+    .history-section { flex: 1; overflow-y: auto; margin-top: 8px; }
+    .history-section::-webkit-scrollbar { width: 4px; }
+    .history-section::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .history-item {
+      padding: 8px 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-size: 12px;
+      word-break: break-word;
+    }
+
+    .history-item:hover { background: var(--bg-hover); }
+    .history-empty { text-align: center; color: var(--text-secondary); padding: 16px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <svg viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="3" width="18" height="18" rx="4" fill="#7C3AED" stroke="#7C3AED"/>
+      <path d="M7 8h10M7 12h8M7 16h6" stroke="#fff" stroke-width="1.5"/>
+    </svg>
+    <h1>Lovable Boost</h1>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Templates</div>
+    <div class="templates" id="sp-templates"></div>
+  </div>
+
+  <div class="section" style="flex:1;display:flex;flex-direction:column;">
+    <textarea id="sp-text" placeholder="Digite seu prompt aqui..."></textarea>
+
+    <div class="actions">
+      <button class="btn btn-mic" id="sp-mic" title="Dictação por voz">🎤</button>
+      <button class="btn" id="sp-file" title="Anexar arquivos">📎</button>
+      <button class="btn btn-primary" id="sp-send">🚀 Enviar</button>
+    </div>
+
+    <div class="file-area" id="sp-file-area">
+      <div class="file-list" id="sp-file-list"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Histórico</div>
+    <div class="history-section">
+      <div class="history-empty" id="sp-history-empty">Nenhum prompt salvo</div>
+      <div id="sp-history-list"></div>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
