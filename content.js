@@ -152,8 +152,14 @@
         renderHistory();
     }
 
-    // ── Send prompt (DIRETO do content script = cookies/origin certos) ──
-    async function sendPrompt() {
+    // ── ULID generator (formato que o Lovable usa nos IDs) ───────────
+    function ulid() {
+        const ENC = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+        let ts = Date.now().toString(36).toUpperCase();
+        let rnd = '';
+        for (let i = 0; i < 16; i++) rnd += ENC[Math.floor(Math.random() * ENC.length)];
+        return (ts + rnd).substring(0, 26).toLowerCase();
+    }
         const prompt = promptInput.value.trim();
         if (!prompt || !currentToken || !currentProjectId) return;
 
@@ -165,17 +171,17 @@
             try {
                 const p = JSON.parse(chatTemplate.bodyTemplate);
                 p.message = prompt;
-                p.id = 'umsg_' + Date.now().toString(36) + Math.random().toString(36).substr(2,9);
-                p.ai_message_id = 'aimsg_' + Date.now().toString(36) + Math.random().toString(36).substr(2,9);
+                p.id = 'umsg_' + ulid();
+                p.ai_message_id = 'aimsg_' + ulid();
                 body = JSON.stringify(p);
             } catch { body = null; }
         }
         if (!body) {
             body = JSON.stringify({
-                id: 'umsg_' + Date.now().toString(36) + Math.random().toString(36).substr(2,9),
+                id: 'umsg_' + ulid(),
                 message: prompt, files: [], selected_elements: [],
                 chat_only: false, view: "preview",
-                ai_message_id: 'aimsg_' + Date.now().toString(36) + Math.random().toString(36).substr(2,9),
+                ai_message_id: 'aimsg_' + ulid(),
                 thread_id: "main", model: null
             });
         }
