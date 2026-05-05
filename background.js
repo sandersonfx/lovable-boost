@@ -13,34 +13,32 @@ chrome.action.onClicked.addListener(async (tab) => {
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    // Proxy fetch para Lovable API
+    // Proxy fetch para Lovable API — via Reativazap
     if (msg.action === "lovablePrompt") {
         (async () => {
             try {
-                const { token, projectId, prompt } = msg;
+                const { token, projectId, prompt, proxyUrl } = msg;
                 if (!token || !projectId) {
                     sendResponse({ ok: false, error: "Token ou ProjectId não capturado. Acesse o Lovable.dev primeiro." });
                     return;
                 }
 
-                const url = `https://api.lovable.dev/v1/projects/${projectId}/prompt`;
-                const resp = await fetch(url, {
+                // Usa o proxy do Reativazap
+                const PROXY_URL = proxyUrl || "https://api.reativazap.com/lovable/proxy";
+                
+                const resp = await fetch(PROXY_URL, {
                     method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${token}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ prompt, stream: false })
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token, projectId, prompt })
                 });
 
-                if (!resp.ok) {
-                    const text = await resp.text();
-                    sendResponse({ ok: false, error: `HTTP ${resp.status}: ${text}` });
-                    return;
+                const result = await resp.json();
+                
+                if (result.ok) {
+                    sendResponse({ ok: true, data: result.data });
+                } else {
+                    sendResponse({ ok: false, error: result.error || `HTTP ${resp.status}` });
                 }
-
-                const data = await resp.json();
-                sendResponse({ ok: true, data });
             } catch (err) {
                 sendResponse({ ok: false, error: err.message });
             }

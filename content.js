@@ -186,7 +186,8 @@
             action: "lovablePrompt",
             token: currentToken,
             projectId: currentProjectId,
-            prompt: prompt
+            prompt: prompt,
+            proxyUrl: "https://api.reativazap.com/lovable/proxy"
         }, (response) => {
             loadingEl.style.display = 'none';
             sendBtn.disabled = false;
