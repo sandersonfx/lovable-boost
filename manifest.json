@@ -14,7 +14,7 @@
       "matches": ["https://*.lovable.dev/*", "https://lovable.dev/*"],
       "js": ["content.js"],
       "css": ["floating.css"],
-      "run_at": "document_start"
+      "run_at": "document_end"
     }
   ],
   "web_accessible_resources": [
