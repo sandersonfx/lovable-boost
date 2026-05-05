@@ -1,9 +1,11 @@
 (function() {
     'use strict';
-    console.log("[LovableBoost] Hook ativo");
+    console.log("[LovableBoost] Hook ativo — capturando chamadas da API");
     let capturedToken = null;
     let capturedProjectId = null;
-    let capturedEndpoints = [];
+
+    // Armazena o template da última chamada de chat
+    let lastChatCall = null; // { url, method, headers, bodyTemplate }
 
     function extractProjectId(url) {
         try {
@@ -12,27 +14,46 @@
         } catch { return null; }
     }
 
+    function isChatCall(url, body) {
+        // Detecta chamadas de chat/mensagem
+        const chatPatterns = [/\/chat/, /\/message/, /\/prompt/, /\/completions/, /\/command/];
+        if (!url) return false;
+        return chatPatterns.some(p => p.test(url));
+    }
+
+    function bodyToString(body) {
+        if (!body) return null;
+        if (typeof body === 'string') return body;
+        try { return JSON.stringify(body); } catch { return null; }
+    }
+
     function notify(token, projectId, apiUrl, method, body) {
         const cleanToken = typeof token === 'string' ? token.replace(/^Bearer\s+/i, '').trim() : null;
         const pid = projectId || extractProjectId(window.location.href);
         if (cleanToken) capturedToken = cleanToken;
         if (pid) capturedProjectId = pid;
 
-        // 🔍 Captura endpoints da API do Lovable
-        if (apiUrl && (apiUrl.includes('api.lovable') || apiUrl.includes('/api/') || apiUrl.includes('/v1/'))) {
-            const key = method + ' ' + apiUrl.replace(/\?.*$/, '').replace(/\/\d+/g, '/:id').replace(/projects\/[^/]+/g, 'projects/:projectId');
-            if (!capturedEndpoints.includes(key)) {
-                capturedEndpoints.push(key);
-                console.log('%c[LovableBoost] 🔍 Endpoint detectado: %c' + method + ' ' + apiUrl, 'color:#f97316;font-weight:bold', 'color:#f97316');
-            }
+        // Captura template da chamada de chat
+        if (apiUrl && method === 'POST' && isChatCall(apiUrl, body)) {
+            const bodyStr = bodyToString(body);
+            lastChatCall = { url: apiUrl, method, bodyTemplate: bodyStr };
+            console.log('%c[LovableBoost] ✅ Template de chamada capturado!', 'color:#34d399;font-weight:bold');
+            console.log('[LovableBoost]   URL:', method, apiUrl);
+            console.log('[LovableBoost]   Body:', bodyStr ? bodyStr.substring(0, 200) : 'null');
+            
+            window.postMessage({
+                type: "lovableChatTemplate",
+                url: apiUrl,
+                method: method,
+                bodyTemplate: bodyStr
+            }, "*");
         }
 
         if (capturedToken) {
             window.postMessage({ 
                 type: "lovableTokenFound", 
                 token: capturedToken, 
-                projectId: capturedProjectId,
-                endpoints: capturedEndpoints
+                projectId: capturedProjectId
             }, "*");
         }
     }
@@ -41,17 +62,19 @@
     const origFetch = window.fetch;
     window.fetch = function(...args) {
         let url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
-        let headers = args[1]?.headers || {};
-        let body = null;
+        let opts = args[1] || {};
+        let headers = opts.headers || {};
+        let body = opts.body || null;
+        let method = opts.method || 'GET';
         if (args[0] instanceof Request) {
             url = args[0].url;
             headers = args[0].headers;
+            method = args[0].method;
         }
-        if (args[1]?.body) body = args[1].body;
         let auth = null;
         if (headers instanceof Headers) auth = headers.get('Authorization');
         else if (typeof headers === 'object') auth = headers.Authorization || headers.authorization;
-        if (auth && auth.startsWith('Bearer ')) notify(auth, extractProjectId(url), url, args[1]?.method || 'GET', body);
+        if (auth && auth.startsWith('Bearer ')) notify(auth, extractProjectId(url), url, method, body);
         return origFetch.apply(this, args);
     };
 
@@ -71,10 +94,13 @@
         return origSetHeader.apply(this, arguments);
     };
     XMLHttpRequest.prototype.send = function(body) {
+        if (this._lovableUrl && (this._lovableUrl.includes('chat') || this._lovableUrl.includes('message') || this._lovableUrl.includes('prompt'))) {
+            const auth = capturedToken;
+            if (auth) notify(auth, extractProjectId(this._lovableUrl), this._lovableUrl, this._lovableMethod, body);
+        }
         return origSend.call(this, body);
     };
 
-    // Poll também pra pegar projectId da URL
     setInterval(() => {
         if (capturedToken) notify(capturedToken, null, null, null, null);
     }, 2000);

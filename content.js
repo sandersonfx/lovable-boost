@@ -11,6 +11,7 @@
     let currentProjectId = null;
     let promptHistory = [];
     let isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let chatTemplate = null; // Template capturado da chamada real do Lovable
 
     // ── Load stored data ─────────────────────────────────────────────
     chrome.storage.local.get(['lovableToken', 'lovableProjectId', 'lovablePromptHistory', 'lovableDarkMode'], (res) => {
@@ -33,6 +34,20 @@
                 currentProjectId = projectId;
                 chrome.storage.local.set({ lovableProjectId: projectId });
             }
+            updateUI();
+            // Auto-abre o painel quando captura token
+            const panel = document.getElementById('lovable-boost-panel');
+            if (panel && currentToken && currentProjectId) panel.classList.add('lb-open');
+        }
+        // Recebe o template da chamada real do Lovable
+        if (event.data.type === 'lovableChatTemplate') {
+            chatTemplate = {
+                url: event.data.url,
+                method: event.data.method,
+                bodyTemplate: event.data.bodyTemplate
+            };
+            console.log('[LovableBoost] ✅ Template capturado:', chatTemplate.url);
+            chrome.runtime.sendMessage({ action: "saveChatTemplate", template: chatTemplate });
             updateUI();
         }
     });
@@ -147,12 +162,18 @@
 
     // ── Update UI state ─────────────────────────────────────────────
     function updateUI() {
-        if (currentToken && currentProjectId) {
+        if (currentToken && currentProjectId && chatTemplate) {
             statusEl.className = 'lb-status lb-status-active';
-            statusEl.innerHTML = `🟢 Token capturado: <code>${currentProjectId.substring(0, 8)}...</code>`;
+            statusEl.innerHTML = `🟢 Pronto! Template: <code>${chatTemplate.url.substring(0,40).replace(/https:\/\//,'')}...</code>`;
             projectInfo.style.display = 'block';
             projectInfo.innerHTML = `📁 Projeto: <code>${currentProjectId}</code>`;
             sendBtn.disabled = false;
+        } else if (currentToken && currentProjectId) {
+            statusEl.className = 'lb-status lb-status-partial';
+            statusEl.innerHTML = '🟡 Token OK — ⚠️ Mande 1 msg no chat do Lovable pra capturar o endpoint';
+            projectInfo.style.display = 'block';
+            projectInfo.innerHTML = `📁 Projeto: <code>${currentProjectId}</code>`;
+            sendBtn.disabled = true;
         } else if (currentToken) {
             statusEl.className = 'lb-status lb-status-partial';
             statusEl.innerHTML = '🟡 Token capturado, aguardando Project ID...';
@@ -160,7 +181,7 @@
             sendBtn.disabled = true;
         } else {
             statusEl.className = 'lb-status lb-status-waiting';
-            statusEl.innerHTML = '🔴 Aguardando token...';
+            statusEl.innerHTML = '🔴 Aguardando token... Abra o Lovable.dev';
             projectInfo.style.display = 'none';
             sendBtn.disabled = true;
         }
@@ -178,6 +199,12 @@
             return;
         }
 
+        if (!chatTemplate) {
+            resultEl.style.display = 'block';
+            resultEl.innerHTML = '<div class="lb-result-error">⚠️ Mande UMA mensagem no chat normal do Lovable primeiro (digita qualquer coisa e envia). Depois volta aqui.</div>';
+            return;
+        }
+
         loadingEl.style.display = 'flex';
         resultEl.style.display = 'none';
         sendBtn.disabled = true;
@@ -186,7 +213,8 @@
             action: "lovablePrompt",
             token: currentToken,
             projectId: currentProjectId,
-            prompt: prompt
+            prompt: prompt,
+            chatTemplate: chatTemplate
         }, (response) => {
             loadingEl.style.display = 'none';
             sendBtn.disabled = false;
